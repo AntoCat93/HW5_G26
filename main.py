@@ -2,7 +2,7 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 
-G = nx.read_gpickle("graph_test.gpickle.gz")
+G = nx.read_gpickle("graph.gpickle.gz")
 
 def getFunction(i):
     if i == 1:
