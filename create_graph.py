@@ -13,9 +13,9 @@ distance_file.drop(columns=["char"], inplace=True)
 time_distance_df = pd.merge(time_file, distance_file, on=["node_a", "node_b"])
 
 # Create Graph
-G = nx.Graph()
+G = nx.DiGraph()
 for index, row in nodes_info.iterrows():
     G.add_node(index, attr_dict = row.to_dict())
 for index, row in time_distance_df.iterrows():
     G.add_edge(row['node_a'], row['node_b'], attr_dict = row.to_dict())
-nx.write_gpickle(G, "graph.gpickle.gz")
+nx.write_gpickle(G, "directed_graph.gpickle.gz")
