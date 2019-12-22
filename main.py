@@ -23,7 +23,14 @@ def functionality1():
     threshold = int(input("Digit the distance threshold\n"))
 
 def functionality2():
-    print("soon..")
+    nodes = list(map(int, input("Digit a list of node (comma separeted) in this way: 'ex. 25,346,456'\n").split(",")))
+    dist_funct = int(input("Digit 1 for the distance function, 2 for the time distance function or 3 for the network distance\n"))
+    if dist_funct==1:
+        param='distance'
+    elif dist_funct=2:
+        param='time'
+    else:
+        param= 'w'
 
 def functionality3():
     node_id = int(input("Digit a node\n"))
