@@ -1,77 +1,86 @@
-from collections import defaultdict 
-  
-#Creating a class to represent a graph 
-class graph: 
-  
-    def __init__(self,vertices): 
-        self.V= vertices #this is the number of vertices 
-        self.graph = []  #creating default dictionary to store the graph
-          
-   
-    # this is a function to add an edge to graph 
-    def addEdge(self,a,b,c): 
-        self.graph.append([a,b,c]) 
-  
-    # this is a function to find set of an element i 
-    def find(self, prev, i): 
-        if prev[i] == i: 
-            return i 
-        return self.find(prev, prev[i]) 
-  
-    # A function that does union of two sets of x and y 
-    def union(self, prev, rank, x, y): 
-        x_root = self.find(prev, x) 
-        y_root = self.find(prev, y) 
-  
-        # Attach smaller rank tree under root of high rank tree
-        if rank[x_root] < rank[y_root]: 
-            prev[x_root] = y_root 
-        elif rank[x_root] > rank[y_root]: 
-            prev[y_root] = x_root 
-  
-        # If ranks are same, then make one as root and increase rank by one
-        else : 
-            prev[y_root] = xroot 
-            rank[x_root] += 1
-  
-    # this is the function of minimum spanning tree using kruskal's algorithm
-    def KruskalMST(self): 
-  
-        result =[] #list which will store the results
-  
-        i = 0 # An index variable, used for sorted edges 
-        j = 0 # An index variable, used for result[] 
-  
-            # Step 1:  Sort all the edges in non-decreasing  
-                # order of their 
-                # weight.  If we are not allowed to change the  
-                # given graph, we can create a copy of graph 
-        self.graph =  sorted(self.graph,key=lambda item: item[2]) 
-  
-        parent = [] ; rank = [] 
-  
-        # Create V subsets with single elements 
-        for node in range(self.V): 
-            parent.append(node) 
-            rank.append(0) 
-      
-        # Number of edges to be taken is equal to V-1 
-        while j < self.V -1 : 
-  
-            # Step 2: Pick the smallest edge and increment  
-                    # the index for next iteration 
-            a,b,c =  self.graph[i] 
-            i = i + 1
-            x = self.find(prev, a) 
-            y = self.find(prev ,b) 
-  
-            # If including this edge does't cause cycle,  
-                        # include it in result and increment the index 
-                        # of result for next edge 
-            if x != y: 
-                j = j + 1     
-                result.append([a,b,c]) 
-                self.union(prev, rank, x, y)             
-            # Else discard the edge 
-        for a,b,c  in result: 
-            print ("%d -- %d == %d" % (a,b,c)) 
+import folium
+import webbrowser
+import os 
+from operator import itemgetter
+import networkx as nx
+
+def KruskalMST(Gd, nodes, param = 'network'):
+    sG,msg = createSubGraph(Gd, nodes, param)
+    if msg == 'OK':
+        sorted_edges = sortEdges(sG)
+        edges_visited = []
+        trees = {}
+        i = 0
+        for el in nodes:
+            trees[i] = [el]
+            i += 1
+        tot_cost = 0
+        i = 0
+        while len(edges_visited) != len(nodes) - 1:
+            edge = sorted_edges[i]
+            for key in trees:
+                if edge['nodes'][0] in trees[key]:
+                    h = key
+            for key in trees:
+                if edge['nodes'][1] in trees[key]:
+                    k = key  
+            if h!=k:
+                trees[h] = trees[h] + trees[k]
+                edges_visited.append((edge['nodes'][0], edge['nodes'][1]))
+                del trees[k]
+                tot_cost += sG.get_edge_data(edge['nodes'][0], edge['nodes'][1])['w']
+            i += 1
+        return edges_visited, tot_cost
+    else :
+        print("Nodes are not connected!")
+        return [], 0
+
+def sortEdges(sG):
+    edges_dict = []
+    for edge in list(sG.edges()):
+        edges_dict.append({ 'nodes' : (edge[0], edge[1]), 'w' : int(sG.get_edge_data(edge[0], edge[1])['w'])})
+    sorted_dict = sorted(edges_dict, key=lambda k: k['w']) 
+    return sorted_dict
+
+def createSubGraph(Gd, nodes, param = 'network'):
+    msg = "OK"
+    subGraph = nx.DiGraph()
+    for n in nodes:
+        subGraph.add_node(n, attr_dict = Gd.nodes[n-1]['attr_dict'])
+    for n in nodes:
+        for s in nodes:
+            if s != n:
+                if s in findNeigb(Gd,n):
+                    if param == 'network': 
+                        w = 1
+                    else:
+                        w =  Gd.get_edge_data(n, s)['attr_dict'][param]
+                    subGraph.add_edge(n, s, w = w)
+    for n in nodes:
+        if len(list(subGraph.edges(n))) == 0:
+            msg = "Not connected"
+    return subGraph, msg
+
+def findNeigb(graph, node):
+    return [n[1] for n in list(graph.edges(node))]
+
+def functionality2(Gd, nodes, param = 'network'):
+    res, distance = KruskalMST(Gd, nodes, param = 'network')
+    if len(res) > 0:
+        my_map4 = folium.Map(location = [Gd.nodes[nodes[0]-1]['attr_dict']['latitude'], Gd.nodes[nodes[0]-1]['attr_dict']['longitude']], zoom_start = 12)
+        for s in res:
+            folium.PolyLine(locations = [(Gd.nodes[s[0]-1]['attr_dict']['latitude'], Gd.nodes[s[0]-1]['attr_dict']['longitude']), (Gd.nodes[s[1]-1]['attr_dict']['latitude'], Gd.nodes[s[1]-1]['attr_dict']['longitude'])], 
+                          line_opacity = 0.5, color = getParamColor(param)).add_to(my_map4)
+        for s in nodes:
+            folium.Marker([Gd.nodes[s-1]['attr_dict']['latitude'], Gd.nodes[s-1]['attr_dict']['longitude']], 
+                        popup = 'Node '+ str(s), icon=folium.Icon(color='lightgray', icon='map-pin', prefix='fa') ).add_to(my_map4)
+        my_map4.save("my_map_new.html")
+        webbrowser.open('file://' + os.path.realpath('my_map_new.html'))
+
+def getParamColor(param):
+  if param == 'time':
+    return 'green'
+  elif param == 'distance':
+    return 'blue'
+  else:
+    return 'gray'
